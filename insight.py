@@ -84,25 +84,24 @@ async def on_ready():
 
 @client.event
 async def on_message(message):
-    if message.author == client.user:
+    if message.author == client.user or message.content != COMMAND:
         return
-
-    if message.content == COMMAND:
-        channel = message.channel
-        try:
-            print(f"Retrieving digest for #{channel.name} in '{message.guild.name}'")
-            
-            await set_reaction(message, CLOCK_EMOJI)
-            digest = Digest(channel)
-            await digest.collect()
-            await message.channel.send(embed=digest.format()) 
-            await set_reaction(message, CHECK_EMOJI)
-            
-            print("Done")
-        except Exception as e:
-            print(f"Error: {e}")
-            await set_reaction(message, ERROR_EMOJI)
-            await channel.send(embed=ERROR_EMBED) 
+    
+    channel = message.channel
+    try:
+        print(f"Retrieving digest for #{channel.name} in '{message.guild.name}'")
+        
+        await set_reaction(message, CLOCK_EMOJI)
+        digest = Digest(channel)
+        await digest.collect()
+        await message.channel.send(embed=digest.format()) 
+        await set_reaction(message, CHECK_EMOJI)
+        
+        print("Done")
+    except Exception as e:
+        print(f"Error: {e}")
+        await set_reaction(message, ERROR_EMOJI)
+        await channel.send(embed=ERROR_EMBED) 
 
 
 client.run(TOKEN)
