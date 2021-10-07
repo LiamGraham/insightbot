@@ -32,6 +32,9 @@ class Digest:
         self.file_count = 0
 
     async def collect(self):
+        """
+        Collects digest for the channel (for the `self.limit` most recent messages). 
+        """
         self._reset()
         user_ids = set()
         async for message in self.channel.history(limit=self._limit):
@@ -46,6 +49,9 @@ class Digest:
         self.user_count = len(user_ids)
 
     def format(self) -> Embed:
+        """
+        Returns the contents of the digest formatted as an Embed.
+        """
         format_list = "\n".join([f"• {count} **{file_format}** file{'' if count == 1 else 's'}" for file_format, count in self.file_formats.items()])
         return Embed(
             title="Digest",
@@ -60,7 +66,10 @@ class Digest:
             """
         )
 
-async def add_reaction(message, emoji):
+async def set_reaction(message, emoji):
+    """
+    Sets the bot reaction for the given message, removing all other reactions by the bot.
+    """
     for reaction in message.reactions:
         if reaction.me:
             await message.remove_reaction(reaction, client.user)
@@ -70,6 +79,7 @@ async def add_reaction(message, emoji):
 @client.event
 async def on_ready():
     print('We have logged in as {0.user}'.format(client))
+
 
 @client.event
 async def on_message(message):
@@ -81,14 +91,17 @@ async def on_message(message):
         try:
             print(f"Retrieving digest for #{channel.name} in '{message.guild.name}'")
             
-            await add_reaction(message, CLOCK_EMOJI)
+            await set_reaction(message, CLOCK_EMOJI)
             digest = Digest(channel)
             await digest.collect()
             await message.channel.send(embed=digest.format()) 
-            await add_reaction(message, CHECK_EMOJI)
+            await set_reaction(message, CHECK_EMOJI)
+            
+            print("Done")
         except Exception as e:
             print(f"Error: {e}")
-            await add_reaction(message, ERROR_EMOJI)
+            await set_reaction(message, ERROR_EMOJI)
             await channel.send(embed=ERROR_EMBED) 
+
 
 client.run(TOKEN)
