@@ -1,14 +1,17 @@
 import discord
 from discord import TextChannel, Embed, Colour
 import os
-import time
-
-from discord import file
-from discord.emoji import Emoji
 
 TOKEN = os.environ.get('BOT_TOKEN')
+
 CHECK_EMOJI = str('✅')
 CLOCK_EMOJI = str('🕑')
+ERROR_EMOJI = str('⁉️')
+
+ERROR_EMBED = Embed(
+    description="Oops! Looks like something went wrong. Try again later.",
+    colour=Colour.red()
+)
 
 client = discord.Client()
 
@@ -57,12 +60,12 @@ class Digest:
             """
         )
 
-async def add_loading_reaction(message):
-    await message.add_reaction(CLOCK_EMOJI)
-
-async def add_done_reaction(message):
-    await message.remove_reaction(CLOCK_EMOJI, client.user)
-    await message.add_reaction(CHECK_EMOJI)
+async def add_reaction(message, emoji):
+    for reaction in message.reactions:
+        if reaction.me:
+            await message.remove_reaction(reaction, client.user)
+    await message.add_reaction(emoji)
+    
 
 @client.event
 async def on_ready():
@@ -75,12 +78,17 @@ async def on_message(message):
 
     if message.content.startswith('!digest'):
         channel = message.channel
-        await add_loading_reaction(message)
-        print(f"Retrieving digest for #{channel.name} in '{message.guild.name}'")
-        
-        digest = Digest(channel)
-        await digest.collect()
-        await message.channel.send(embed=digest.format()) 
-        await add_done_reaction(message)
+        try:
+            print(f"Retrieving digest for #{channel.name} in '{message.guild.name}'")
+            
+            await add_reaction(message, CLOCK_EMOJI)
+            digest = Digest(channel)
+            await digest.collect()
+            await message.channel.send(embed=digest.format()) 
+            await add_reaction(message, CHECK_EMOJI)
+        except Exception as e:
+            print(f"Error: {e}")
+            await add_reaction(message, ERROR_EMOJI)
+            await channel.send(embed=ERROR_EMBED) 
 
 client.run(TOKEN)
