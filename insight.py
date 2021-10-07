@@ -4,6 +4,7 @@ import os
 
 TOKEN = os.environ.get('BOT_TOKEN')
 
+COMMAND = '!digest'
 CHECK_EMOJI = str('✅')
 CLOCK_EMOJI = str('🕑')
 ERROR_EMOJI = str('⁉️')
@@ -86,7 +87,7 @@ async def on_message(message):
     if message.author == client.user:
         return
 
-    if message.content.startswith('!digest'):
+    if message.content == COMMAND:
         channel = message.channel
         try:
             print(f"Retrieving digest for #{channel.name} in '{message.guild.name}'")
