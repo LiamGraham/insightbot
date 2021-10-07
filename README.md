@@ -2,7 +2,7 @@
 
 # Insight Bot
 
-Discord bot which can generate a basic digest of the contents of a Discord text channel. 
+Discord bot which can generate a basic digest of the contents of a text channel. 
 
 ## Example
 
