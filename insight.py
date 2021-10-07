@@ -1,10 +1,14 @@
 import discord
 from discord import TextChannel, Embed, Colour
 import os
+import time
 
 from discord import file
+from discord.emoji import Emoji
 
 TOKEN = os.environ.get('BOT_TOKEN')
+CHECK_EMOJI = str('✅')
+CLOCK_EMOJI = str('🕑')
 
 client = discord.Client()
 
@@ -28,8 +32,6 @@ class Digest:
         self._reset()
         user_ids = set()
         async for message in self.channel.history(limit=self._limit):
-            if message.embeds:
-                print(message.embeds[0].to_dict())
             if not message.attachments:
                 continue
             user_ids.add(message.author.id)
@@ -49,11 +51,18 @@ class Digest:
         ).add_field(
             name="Files",
             value=f"""
-            {self.file_count} files have been sent by {self.user_count} user{'' if self.user_count == 1 else 's'}.
+            In the last {self._limit} messages, {self.file_count} files have been sent by {self.user_count} user{'' if self.user_count == 1 else 's'}.
 
             {format_list}
             """
         )
+
+async def add_loading_reaction(message):
+    await message.add_reaction(CLOCK_EMOJI)
+
+async def add_done_reaction(message):
+    await message.remove_reaction(CLOCK_EMOJI, client.user)
+    await message.add_reaction(CHECK_EMOJI)
 
 @client.event
 async def on_ready():
@@ -66,9 +75,12 @@ async def on_message(message):
 
     if message.content.startswith('!digest'):
         channel = message.channel
+        await add_loading_reaction(message)
+        print(f"Retrieving digest for #{channel.name} in '{message.guild.name}'")
         
         digest = Digest(channel)
         await digest.collect()
         await message.channel.send(embed=digest.format()) 
+        await add_done_reaction(message)
 
 client.run(TOKEN)
