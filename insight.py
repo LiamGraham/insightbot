@@ -1,6 +1,7 @@
 import discord
 from discord import TextChannel, Embed, Colour
 import os
+import logging
 
 TOKEN = os.environ.get('BOT_TOKEN')
 
@@ -13,6 +14,13 @@ ERROR_EMBED = Embed(
     description="Oops! Looks like something went wrong. Try again later.",
     colour=Colour.red()
 )
+
+logger = logging.getLogger('discord')
+logger.setLevel(logging.INFO)
+handler = logging.FileHandler(filename='insight.log', encoding='utf-8', mode='a')
+handler.setFormatter(logging.Formatter('%(asctime)s:%(levelname)s:%(name)s: %(message)s'))
+logger.addHandler(handler)
+logger.addHandler(logging.StreamHandler())
 
 client = discord.Client()
 
@@ -76,11 +84,12 @@ async def set_reaction(message, emoji):
         if reaction.me:
             await message.remove_reaction(reaction, client.user)
     await message.add_reaction(emoji)
+    logger.info(f'Set reaction for message {message.id} to {emoji}')
     
 
 @client.event
 async def on_ready():
-    print(f'Logged in as {client.user}')
+    logger.info(f'Logged in as {client.user}')
 
 
 @client.event
@@ -90,17 +99,19 @@ async def on_message(message):
     
     channel = message.channel
     try:
-        print(f"Retrieving digest for #{channel.name} in '{message.guild.name}'")
+        logger.info(f"Retrieving digest for {message.guild.name}/#{channel.name}")
         
         await set_reaction(message, CLOCK_EMOJI)
         digest = Digest(channel)
         await digest.collect()
+
+        logger.info(f"Sending digest for {message.guild.name}/#{channel.name}")
         await channel.send(embed=digest.format()) 
         await set_reaction(message, CHECK_EMOJI)
         
-        print("Done")
+        logger.info(f"Digest successfully sent for {message.guild.name}/#{channel.name}")
     except Exception as e:
-        print(f"Error: {e}")
+        logger.error(f"Error occured when processing digest for {message.guild.name}/#{channel.name}: {e}")
         await set_reaction(message, ERROR_EMOJI)
         await channel.send(embed=ERROR_EMBED) 
 
