@@ -41,6 +41,7 @@ class Digest:
         async for message in self.channel.history(limit=self._limit):
             if not message.attachments:
                 continue
+
             user_ids.add(message.author.id)
             attachment = message.attachments[0]
             format = os.path.splitext(attachment.filename)[1]
@@ -79,7 +80,7 @@ async def set_reaction(message, emoji):
 
 @client.event
 async def on_ready():
-    print('We have logged in as {0.user}'.format(client))
+    print(f'Logged in as {client.user}')
 
 
 @client.event
@@ -94,7 +95,7 @@ async def on_message(message):
         await set_reaction(message, CLOCK_EMOJI)
         digest = Digest(channel)
         await digest.collect()
-        await message.channel.send(embed=digest.format()) 
+        await channel.send(embed=digest.format()) 
         await set_reaction(message, CHECK_EMOJI)
         
         print("Done")
