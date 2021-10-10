@@ -25,10 +25,10 @@ logger.addHandler(logging.StreamHandler())
 client = discord.Client()
 
 class Digest:
-    HISTORY_LIMIT = 500
+    DEFAULT_LIMIT = 500
 
     def __init__(self, channel: TextChannel, limit: int=0):
-        self._limit = limit if limit > 0 else self.HISTORY_LIMIT
+        self._limit = limit if limit > 0 else self.DEFAULT_LIMIT
         
         self.channel = channel
         self.file_formats = {}
@@ -62,18 +62,19 @@ class Digest:
         """
         Returns the contents of the digest formatted as an Embed.
         """
-        format_list = "\n".join([f"• {count} **{file_format}** file{'' if count == 1 else 's'}" for file_format, count in self.file_formats.items()])
+        files_text = f"In the last {self._limit} messages, {self.file_count} files have been sent by {self.user_count} user{'' if self.user_count == 1 else 's'}."
+        
+        if self.file_count > 0:
+            format_list = "\n".join([f"• {count} **{file_format}** file{'' if count == 1 else 's'}" for file_format, count in self.file_formats.items()])
+            files_text += "\n\n" + format_list
+
         return Embed(
             title="Digest",
             colour=Colour.blue(),
             description=f"Here's a digest for the channel <#{self.channel.id}>.",
         ).add_field(
             name="Files",
-            value=f"""
-            In the last {self._limit} messages, {self.file_count} files have been sent by {self.user_count} user{'' if self.user_count == 1 else 's'}.
-
-            {format_list}
-            """
+            value=files_text
         )
 
 async def set_reaction(message, emoji):
@@ -86,7 +87,6 @@ async def set_reaction(message, emoji):
     await message.add_reaction(emoji)
     logger.info(f'Set reaction for message {message.id} to {emoji}')
     
-
 @client.event
 async def on_ready():
     logger.info(f'Logged in as {client.user}')
@@ -94,11 +94,13 @@ async def on_ready():
 
 @client.event
 async def on_message(message):
-    if message.author == client.user or message.content != COMMAND:
-        return
-    
-    channel = message.channel
     try:
+        channel = message.channel
+        values = message.content.split(r"\s")
+
+        if message.author == client.user or values[0] != COMMAND:
+            return
+
         logger.info(f"Retrieving digest for {message.guild.name}/#{channel.name}")
         
         await set_reaction(message, CLOCK_EMOJI)
